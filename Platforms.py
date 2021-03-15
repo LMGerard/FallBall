@@ -3,11 +3,12 @@ from random import randint, randrange, choice
 
 
 class Platform(ac.Sprite):
-    speed = 2
     textures_pattern = []
     super_platform_texture = None
+    teleportation_platform_texture = None
+    reverse_platform_texture = None
 
-    def __init__(self, game: ac.View):
+    def __init__(self, game: ac.View, center_x=None):
         self.game = game
         self.window = game.window
 
@@ -16,16 +17,19 @@ class Platform(ac.Sprite):
         self.score_points = 1
         self.can_generate = True
 
-        x_0 = int(max(self.game.ball.left - 300, self.width // 2))
-        x_1 = int(min(self.game.ball.right + 300, self.window.width - self.width // 2))
-        self.center_x = randint(x_0, x_1)
-
-        self.change_y = Platform.speed
+        if center_x is None:
+            x_0 = int(self.game.platforms[-1].left - 400)
+            x_1 = int(self.game.platforms[-1].right + 400)
+            self.center_x = randint(x_0, x_1)
+        else:
+            self.center_x = center_x
+        self.center_y = self.game.offset_y - self.window.height // 5
 
     def on_update(self, delta_time: float = 1 / 60):
         self.position = [self._position[0] + self.change_x, self._position[1] + self.change_y]
+        self.angle += self.change_angle
 
-        if self.bottom >= self.window.height:
+        if self.bottom >= self.window.get_viewport()[3]:
             self.game.platforms.remove(self)
 
             if self.can_generate:
@@ -40,15 +44,19 @@ class Platform(ac.Sprite):
     def generate_platform(game: ac.View):
         percent = randrange(100)
 
-        if percent < 50:
+        if percent < 40:
             game.platforms.append(BasicPlatform(game))
-        elif 50 <= percent < 70:
+        elif 40 <= percent < 60:
             game.platforms.append(LeanedPlatform(game))
+        elif 60 <= percent < 65:
+            game.platforms.append(RotatingPlatform(game))
+        elif 65 <= percent < 70:
+            game.platforms.append(TeleportationPlatform(game))
         elif 70 <= percent < 90:
             game.platforms.append(MovingPlatform(game))
         elif 90 <= percent < 100:
-            game.platforms.append(BasicPlatform(game))
             game.platforms.append(SuperPlatform(game))
+            game.platforms.append(BasicPlatform(game))
 
     @staticmethod
     def init_textures(window: ac.Window):
@@ -58,11 +66,15 @@ class Platform(ac.Sprite):
 
         Platform.super_platform_texture = ac.SpriteSolidColor(width=50, height=window.height // 50,
                                                               color=(224, 246, 41)).texture
+        Platform.teleportation_platform_texture = ac.SpriteSolidColor(width=100, height=window.height // 50,
+                                                                      color=(0, 0, 255)).texture
+        Platform.reverse_platform_texture = ac.SpriteSolidColor(width=100, height=window.height // 50,
+                                                                color=(0, 0, 255)).texture
 
 
 class BasicPlatform(Platform, ac.Sprite):
-    def __init__(self, game: ac.View):
-        super(BasicPlatform, self).__init__(game)
+    def __init__(self, game: ac.View, center_x=None):
+        super(BasicPlatform, self).__init__(game, center_x=center_x)
         self.texture = Platform.textures_pattern[randint(0, 10)]
 
 
@@ -86,7 +98,7 @@ class MovingPlatform(Platform, ac.Sprite):
         if self.left <= self.min_x or self.right >= self.max_x:
             self.change_x *= -1
 
-        if self.collides_with_sprite(self.game.ball):
+        if self in self.game.colliding_platforms:
             self.game.ball.center_x += self.change_x
 
 
@@ -95,3 +107,21 @@ class LeanedPlatform(Platform, ac.Sprite):
         super(LeanedPlatform, self).__init__(game)
         self.texture = Platform.textures_pattern[randint(0, 5)]
         self.angle = 45 * choice((-1, 1))
+
+
+class RotatingPlatform(Platform, ac.Sprite):
+    def __init__(self, game: ac.View):
+        super(RotatingPlatform, self).__init__(game)
+        self.texture = Platform.textures_pattern[randint(0, 5)]
+        self.change_angle = 4 * choice((-1, 1))
+
+
+class TeleportationPlatform(Platform, ac.Sprite):
+    def __init__(self, game: ac.View):
+        super(TeleportationPlatform, self).__init__(game)
+        self.texture = Platform.teleportation_platform_texture
+
+    def update(self):
+        if self in self.game.colliding_platforms:
+            self.game.ball.center_x = self.game.platforms[-2].center_x
+            self.game.ball.bottom = self.game.platforms[-2].top
