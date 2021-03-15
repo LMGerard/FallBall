@@ -123,5 +123,13 @@ class TeleportationPlatform(Platform, ac.Sprite):
 
     def update(self):
         if self in self.game.colliding_platforms:
-            self.game.ball.center_x = self.game.platforms[-2].center_x
-            self.game.ball.bottom = self.game.platforms[-2].top
+            platform = self.game.platforms[-2]
+            new_platform = BasicPlatform(self.game, center_x=platform.center_x)
+            new_platform.center_y = platform.center_y
+
+            self.game.platforms.insert(-2, new_platform)
+            self.game.platforms.remove(platform)
+
+            self.game.ball.center_x = new_platform.center_x
+            self.game.ball.bottom = new_platform.top
+

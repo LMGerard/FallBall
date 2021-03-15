@@ -1,6 +1,8 @@
 import arcade as ac
 from time import time
 import Platforms
+import json
+from cryptography.fernet import Fernet
 
 
 class Game(ac.View):
@@ -10,6 +12,7 @@ class Game(ac.View):
         self.offset_y = 0
         self.test = 0
 
+        self.last_score = -1
         self.score = 0
         self.is_paused = False
         self.platforms = ac.SpriteList()
@@ -44,8 +47,13 @@ class Game(ac.View):
 
             for platform in self.colliding_platforms:
                 if platform.score_points > 0:
-                    self.score += platform.score_points
-                    platform.score_points = 0
+                    if self.last_score + 1 == self.score or self.last_score + 5 == self.score:
+                        self.last_score = self.score
+
+                        self.score += platform.score_points
+                        platform.score_points = 0
+                    else:
+                        self.window.close()
 
             self.offset_y -= 3 + (time() - self.timer) // 10
             self.offset_x = self.ball.center_x - self.window.width / 2
@@ -67,7 +75,6 @@ class Game(ac.View):
 
         if self.ball.center_y > self.window.height * 3 / 4:
             alpha = (self.ball.center_y - self.offset_y) - self.window.height * 3 / 4
-            print(alpha)
 
             ac.draw_rectangle_filled(center_x=self.offset_x + self.window.width // 2,
                                      center_y=self.offset_y + self.window.height // 2,
@@ -105,9 +112,9 @@ class Ball(ac.SpriteCircle):
     def __init__(self, game: Game):
         self.game = game
         self.window = game.window
-        
+
         super(Ball, self).__init__(color=(255, 255, 0), radius=15)
-        self.position =self.window.width // 2, self.window.height // 2
+        self.position = self.window.width // 2, self.window.height // 2
 
         self.left_move, self.right_move = False, False
         self.physic_engine = ac.PhysicsEnginePlatformer(self, game.platforms, 1)
@@ -116,4 +123,14 @@ class Ball(ac.SpriteCircle):
         self.change_x = self.right_move * self.speed - self.left_move * self.speed
 
         if self.bottom >= self.game.offset_y + self.window.height or self.top <= self.game.offset_y:
-            self.window.show_game()
+            with open("scores.json", "r") as file:
+                data = json.loads(file.read())
+
+                encrypted_score = self.window.encrypter.encrypt(str(self.game.score).encode()).decode()
+                encrypted_time = self.window.encrypter.encrypt(
+                    str(round(time() - self.game.timer, 3)).encode()).decode()
+
+                data.append((encrypted_score, encrypted_time))
+            with open("scores.json", "w") as file:
+                file.write(json.dumps(data))
+            self.window.show_menu()
