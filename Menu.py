@@ -21,7 +21,7 @@ class Menu(ac.View):
                     data.append(list(map(lambda x: float(self.window.encrypter.decrypt(x.encode()).decode()), value)))
                 except InvalidToken:
                     pass
-        data = sorted(data, key=lambda x: x[0] * x[1])
+        data = sorted(data, key=lambda x: x[0] * x[1])[::-1]
         self.scores = "\n".join([f"{int(points)}|{time}|{round(points * time / 10, 3)}" for points, time in data[:10]])
 
     def on_update(self, delta_time: float):

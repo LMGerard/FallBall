@@ -43,20 +43,23 @@ class Platform(ac.Sprite):
     @staticmethod
     def generate_platform(game: ac.View):
         percent = randrange(100)
-
+        platform = None
         if percent < 40:
-            game.platforms.append(BasicPlatform(game))
+            platform = BasicPlatform(game)
         elif 40 <= percent < 60:
-            game.platforms.append(LeanedPlatform(game))
+            platform = LeanedPlatform(game)
         elif 60 <= percent < 65:
-            game.platforms.append(RotatingPlatform(game))
+            platform = RotatingPlatform(game)
         elif 65 <= percent < 70:
-            game.platforms.append(TeleportationPlatform(game))
+            platform = TeleportationPlatform(game)
         elif 70 <= percent < 90:
-            game.platforms.append(MovingPlatform(game))
+            platform = MovingPlatform(game)
         elif 90 <= percent < 100:
             game.platforms.append(SuperPlatform(game))
-            game.platforms.append(BasicPlatform(game))
+            platform = BasicPlatform(game)
+
+        TeleportationPlatform.goal_platform = game.platforms[-1]
+        game.platforms.append(platform)
 
     @staticmethod
     def init_textures(window: ac.Window):
@@ -117,19 +120,21 @@ class RotatingPlatform(Platform, ac.Sprite):
 
 
 class TeleportationPlatform(Platform, ac.Sprite):
+    goal_platform = None
+
     def __init__(self, game: ac.View):
         super(TeleportationPlatform, self).__init__(game)
         self.texture = Platform.teleportation_platform_texture
 
     def update(self):
         if self in self.game.colliding_platforms:
-            platform = self.game.platforms[-2]
-            new_platform = BasicPlatform(self.game, center_x=platform.center_x)
-            new_platform.center_y = platform.center_y
+            index = self.game.platforms.index(TeleportationPlatform.goal_platform)
 
-            self.game.platforms.insert(-2, new_platform)
-            self.game.platforms.remove(platform)
+            new_platform = BasicPlatform(self.game, center_x=TeleportationPlatform.goal_platform.center_x)
+            new_platform.center_y = TeleportationPlatform.goal_platform.center_y
+
+            self.game.platforms.insert(index, new_platform)
+            self.game.platforms.remove(TeleportationPlatform.goal_platform)
 
             self.game.ball.center_x = new_platform.center_x
             self.game.ball.bottom = new_platform.top
-
