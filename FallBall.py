@@ -1,7 +1,6 @@
 import arcade as ac
 import Game
 import Menu
-import json
 from cryptography.fernet import Fernet
 
 WINDOW_WIDTH = 800
