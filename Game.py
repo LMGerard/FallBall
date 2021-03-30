@@ -1,47 +1,52 @@
 import arcade as ac
+from arcade.experimental.camera import Camera2D
 from time import time
 import Platforms
 import json
-from cryptography.fernet import Fernet
 
 
 class Game(ac.View):
-    def __init__(self, window: ac.Window):
+    def __init__(self, window: ac.Window, camera: Camera2D):
         super(Game, self).__init__(window=window)
-        self.offset_x = 0
-        self.offset_y = 0
-        self.test = 0
+        self.camera = camera
+
+        Platforms.Platform.init_textures(width=1920, height=1080)
+        self.last_score = self.score = self.is_paused = self.platforms = self.colliding_platforms = self.ball = self.timer = None
+
+    def on_show_view(self):
+        # reset camera
+        self.camera.projection = (0, 1920, 0, 1080)
+        self.camera.scroll = (0, 0)
 
         self.last_score = -1
         self.score = 0
         self.is_paused = False
         self.platforms = ac.SpriteList()
         self.colliding_platforms = ac.SpriteList()
-
-        self.timer = time()
-
-        Platforms.Platform.init_textures(self.window)
-
         self.ball = Ball(self)
 
-        self.setup()
+        # init timer
+        self.timer = 0
 
-    def setup(self):
-        platform = Platforms.BasicPlatform(self, center_x=self.window.width // 2)
+        # load initial platforms
+        platform = Platforms.BasicPlatform(self, center_x=960)
         platform.center_y = 0
 
         self.platforms.append(platform)
 
         for i in range(1, 6):
             platform = Platforms.BasicPlatform(self)
-            platform.center_y = - self.window.height // 5 * i
+            platform.center_y = - 216 * i
 
             self.platforms.append(platform)
 
     def on_update(self, delta_time: float):
         if not self.is_paused:
+            self.timer += delta_time
             self.platforms.on_update(delta_time)
-            self.ball.update()
+
+            if not self.ball.update():
+                return
 
             self.colliding_platforms = self.ball.physic_engine.update()
 
@@ -55,38 +60,34 @@ class Game(ac.View):
                     else:
                         self.window.close()
 
-            self.offset_y -= 3 + (time() - self.timer) // 10
-            self.offset_x = self.ball.center_x - self.window.width / 2
-
-            self.window.set_viewport(self.offset_x,
-                                     self.offset_x + self.window.width,
-                                     self.offset_y,
-                                     self.offset_y + self.window.height)
+            self.camera.scroll_y -= 3 + self.timer // 10
+            self.camera.scroll_x = self.ball.center_x - 960
 
     def on_draw(self):
         ac.start_render()
+        self.camera.use()
         self.platforms.draw()
         self.ball.draw()
 
-        ac.draw_text(f"{self.score}\n{round(time() - self.timer, 2)}",
-                     start_x=self.offset_x,
-                     start_y=self.offset_y + self.window.height, anchor_x="left", anchor_y="top",
+        ac.draw_text(f"{self.score}\n{round(self.timer, 2)}",
+                     start_x=self.camera.scroll_x,
+                     start_y=self.camera.scroll_y + 1080, anchor_x="left", anchor_y="top",
                      color=(255, 0, 0), font_size=30)
 
-        if self.ball.center_y > self.window.height * 3 / 4:
-            alpha = (self.ball.center_y - self.offset_y) - self.window.height * 3 / 4
+        if self.ball.center_y > (1080 - self.camera.scroll_y) * 3 / 4:
+            alpha = (self.ball.center_y - self.camera.scroll_y) - 1080 * 3 / 4
 
-            ac.draw_rectangle_filled(center_x=self.offset_x + self.window.width // 2,
-                                     center_y=self.offset_y + self.window.height // 2,
-                                     width=self.window.width,
-                                     height=self.window.height, color=(255, 0, 0, alpha * 0.7))
+            ac.draw_rectangle_filled(center_x=self.camera.scroll_x + 1080 // 2,
+                                     center_y=self.camera.scroll_y + 1080 // 2,
+                                     width=1920,
+                                     height=1080, color=(255, 0, 0, alpha * 0.7))
         if self.is_paused:
-            ac.draw_rectangle_filled(center_x=self.offset_x + self.window.width // 2,
-                                     center_y=self.offset_y + self.window.height // 2,
-                                     width=self.window.width,
-                                     height=self.window.height, color=(255, 255, 255, 100))
-            ac.draw_text("PAUSE", start_x=self.offset_x + self.window.width // 2,
-                         start_y=self.offset_y + self.window.height // 2, anchor_x="center",
+            ac.draw_rectangle_filled(center_x=self.camera.scroll_x + 960,
+                                     center_y=self.camera.scroll_y + 540,
+                                     width=1920,
+                                     height=1080, color=(255, 255, 255, 100))
+            ac.draw_text("PAUSE", start_x=self.camera.scroll_x + 960,
+                         start_y=self.camera.scroll_y + 540, anchor_x="center",
                          anchor_y="center", color=(255, 255, 255), font_size=60)
 
     def on_key_press(self, symbol: int, modifiers: int):
@@ -105,6 +106,9 @@ class Game(ac.View):
         elif _symbol == ac.key.LEFT:
             self.ball.left_move = False
 
+    """def on_resize(self, width: float, height: float):
+        self.camera.projection = (0, 1920, 0, 1080)"""
+
 
 class Ball(ac.SpriteCircle):
     speed = 10
@@ -114,7 +118,7 @@ class Ball(ac.SpriteCircle):
         self.window = game.window
 
         super(Ball, self).__init__(color=(255, 255, 0), radius=15)
-        self.position = self.window.width // 2, self.window.height // 2
+        self.position = 960, 540
 
         self.left_move, self.right_move = False, False
         self.physic_engine = ac.PhysicsEnginePlatformer(self, game.platforms, 1)
@@ -122,7 +126,7 @@ class Ball(ac.SpriteCircle):
     def update(self):
         self.change_x = self.right_move * self.speed - self.left_move * self.speed
 
-        if self.bottom >= self.game.offset_y + self.window.height or self.top <= self.game.offset_y:
+        if self.bottom >= 1080 - self.game.camera.scroll_y or self.top <= self.game.camera.scroll_y:
             with open("scores.json", "r") as file:
                 data = json.loads(file.read())
 
@@ -134,3 +138,5 @@ class Ball(ac.SpriteCircle):
             with open("scores.json", "w") as file:
                 file.write(json.dumps(data))
             self.window.show_menu()
+            return False
+        return True

@@ -18,18 +18,18 @@ class Platform(ac.Sprite):
         self.can_generate = True
 
         if center_x is None:
-            x_0 = int(self.game.platforms[-1].left - 400)
-            x_1 = int(self.game.platforms[-1].right + 400)
+            x_0 = int(self.game.platforms[-1].left - 350)
+            x_1 = int(self.game.platforms[-1].right + 350)
             self.center_x = randint(x_0, x_1)
         else:
             self.center_x = center_x
-        self.center_y = self.game.offset_y - self.window.height // 5
+        self.center_y = self.game.camera.scroll_y - 216
 
     def on_update(self, delta_time: float = 1 / 60):
         self.position = [self._position[0] + self.change_x, self._position[1] + self.change_y]
         self.angle += self.change_angle
 
-        if self.bottom >= self.window.get_viewport()[3]:
+        if self.bottom >= 1080 + self.game.camera.scroll_y:
             self.game.platforms.remove(self)
 
             if self.can_generate:
@@ -62,16 +62,16 @@ class Platform(ac.Sprite):
         game.platforms.append(platform)
 
     @staticmethod
-    def init_textures(window: ac.Window):
+    def init_textures(width: int, height: int):
         for i in range(11):
-            Platform.textures_pattern.append(ac.SpriteSolidColor(width=100 + 10 * i, height=window.height // 50,
+            Platform.textures_pattern.append(ac.SpriteSolidColor(width=100 + 10 * i, height=height // 50,
                                                                  color=(255, 0, 0)).texture)
 
-        Platform.super_platform_texture = ac.SpriteSolidColor(width=50, height=window.height // 50,
+        Platform.super_platform_texture = ac.SpriteSolidColor(width=50, height=height // 50,
                                                               color=(224, 246, 41)).texture
-        Platform.teleportation_platform_texture = ac.SpriteSolidColor(width=100, height=window.height // 50,
+        Platform.teleportation_platform_texture = ac.SpriteSolidColor(width=100, height=height // 50,
                                                                       color=(0, 0, 255)).texture
-        Platform.reverse_platform_texture = ac.SpriteSolidColor(width=100, height=window.height // 50,
+        Platform.reverse_platform_texture = ac.SpriteSolidColor(width=100, height=height // 50,
                                                                 color=(0, 0, 255)).texture
 
 
@@ -128,6 +128,8 @@ class TeleportationPlatform(Platform, ac.Sprite):
 
     def update(self):
         if self in self.game.colliding_platforms:
+            if TeleportationPlatform.goal_platform.center_y < self.game.camera.scroll_y:
+                return
             index = self.game.platforms.index(TeleportationPlatform.goal_platform)
 
             new_platform = BasicPlatform(self.game, center_x=TeleportationPlatform.goal_platform.center_x)
