@@ -77,10 +77,11 @@ class Game(ac.View):
         if self.ball.center_y - self.camera.scroll_y > 810:
             alpha = self.ball.center_y - self.camera.scroll_y - 810
 
-            ac.draw_rectangle_filled(center_x=self.camera.scroll_x + 1080 // 2,
-                                     center_y=self.camera.scroll_y + 1080 // 2,
+            ac.draw_rectangle_filled(center_x=self.ball.center_x,
+                                     center_y=self.camera.scroll_y + 540,
                                      width=1920,
                                      height=1080, color=(255, 0, 0, alpha * 0.7))
+
         if self.is_paused:
             ac.draw_rectangle_filled(center_x=self.camera.scroll_x + 960,
                                      center_y=self.camera.scroll_y + 540,
@@ -123,7 +124,7 @@ class Ball(ac.SpriteCircle):
     def update(self):
         self.change_x = self.right_move * self.speed - self.left_move * self.speed
 
-        if self.bottom >= 1080 - self.game.camera.scroll_y or self.top <= self.game.camera.scroll_y:
+        if self.bottom >= 1080 + self.game.camera.scroll_y or self.top <= self.game.camera.scroll_y:
             with open("scores.json", "r") as file:
                 data = json.loads(file.read())
 
