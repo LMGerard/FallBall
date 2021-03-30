@@ -41,9 +41,11 @@ class Menu(ac.View):
         self.elements.update()
 
     def on_draw(self):
-        self.camera.use()
-        ac.start_render()
+        # clear the screen
+        ac.set_viewport(0, self.window.width, 0, self.window.height)
 
+        ac.start_render()
+        self.camera.use()
         self.elements.draw()
         self.play_button.draw()
         self.quit_button.draw()
