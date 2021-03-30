@@ -7,7 +7,7 @@ import json
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
-WINDOW_TITLE = "FallingBall by LoupioFR"
+WINDOW_TITLE = "FallBall by LoupioFR"
 
 
 class FallingBall(ac.Window):
