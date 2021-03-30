@@ -74,8 +74,8 @@ class Game(ac.View):
                      start_y=self.camera.scroll_y + 1080, anchor_x="left", anchor_y="top",
                      color=(255, 0, 0), font_size=30)
 
-        if self.ball.center_y > (1080 - self.camera.scroll_y) * 3 / 4:
-            alpha = (self.ball.center_y - self.camera.scroll_y) - 1080 * 3 / 4
+        if self.ball.center_y - self.camera.scroll_y > 810:
+            alpha = self.ball.center_y - self.camera.scroll_y - 810
 
             ac.draw_rectangle_filled(center_x=self.camera.scroll_x + 1080 // 2,
                                      center_y=self.camera.scroll_y + 1080 // 2,
@@ -106,9 +106,6 @@ class Game(ac.View):
         elif _symbol == ac.key.LEFT:
             self.ball.left_move = False
 
-    """def on_resize(self, width: float, height: float):
-        self.camera.projection = (0, 1920, 0, 1080)"""
-
 
 class Ball(ac.SpriteCircle):
     speed = 10
@@ -132,7 +129,7 @@ class Ball(ac.SpriteCircle):
 
                 encrypted_score = self.window.encrypter.encrypt(str(self.game.score).encode()).decode()
                 encrypted_time = self.window.encrypter.encrypt(
-                    str(round(time() - self.game.timer, 3)).encode()).decode()
+                    str(round(self.game.timer, 3)).encode()).decode()
 
                 data.append((encrypted_score, encrypted_time))
             with open("scores.json", "w") as file:

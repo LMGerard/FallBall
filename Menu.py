@@ -107,7 +107,7 @@ class QuitButton(ac.SpriteCircle):
                      color=(0, 0, 0), font_size=20)
 
     def click(self):
-        self.window.close()
+        self.window.on_close()
 
 
 class FullScreenButton(ac.SpriteCircle):
@@ -126,3 +126,5 @@ class FullScreenButton(ac.SpriteCircle):
             self.window.maximize()
         else:
             self.window.set_fullscreen()
+
+        self.window.set_setting("full_screen", self.window.fullscreen)
