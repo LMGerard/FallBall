@@ -4,7 +4,7 @@ import Game
 import Menu
 from cryptography.fernet import Fernet
 import json
-
+import pyglet
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
 WINDOW_TITLE = "FallBall by LoupioFR"
@@ -14,6 +14,7 @@ class FallingBall(ac.Window):
     def __init__(self):
         super(FallingBall, self).__init__(title=WINDOW_TITLE, width=960, height=540)
 
+        self.set_icon(pyglet.image.load("icon.png"))
         # loading settings
         with open("settings.json") as file:
             self.settings = json.loads(file.read())

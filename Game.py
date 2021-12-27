@@ -1,6 +1,5 @@
 import arcade as ac
 from arcade.experimental.camera import Camera2D
-from time import time
 import Platforms
 import json
 
